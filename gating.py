@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import seaborn as sns
 from scipy import stats
-
+from config import Config
+import os
 
 class Chan():
     SSC_H = 'SSC-H'
@@ -22,7 +23,7 @@ class Chan():
         return [getattr(cls, attr) for attr in dir(cls) if not attr.startswith('__') and not callable(getattr(cls, attr))]
     
 
-def first_gating_plot(df) -> plt:
+def first_gating_plot(df, output_folder: str):
     x_label = Chan.FSC_A
     y_label = Chan.SSC_A 
     x = df[x_label]
@@ -36,9 +37,10 @@ def first_gating_plot(df) -> plt:
     plt.title(f'{x_label} vs {y_label} Scatter Plot')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    return plt
+    
+    plt.savefig(os.path.join(output_folder, "first_gating.pdf"), format="pdf")
 
-def second_gating_plot(df, sd_df=2) -> plt:
+def second_gating_plot(df, output_folder: str, sd_df=2) -> plt:
     x_label = Chan.FSC_A
     y_label = Chan.FSC_H
     x = df[x_label]
@@ -51,8 +53,8 @@ def second_gating_plot(df, sd_df=2) -> plt:
     residuals = y - fitted_values
     std_dev = np.std(residuals)
     # Define the upper and lower gate lines (4 standard deviations away)
-    upper_gate = fitted_values + sd_df * std_dev
-    lower_gate = fitted_values - sd_df * std_dev
+    upper_gate = fitted_values + (sd_df * std_dev)
+    lower_gate = fitted_values - (sd_df * std_dev)
     
     # Plot the data and the gating lines
     plt.figure(figsize=(10, 10))
@@ -81,18 +83,20 @@ def second_gating_plot(df, sd_df=2) -> plt:
     plt.ylabel(y_label)
     plt.legend()
     
+    plt.savefig(os.path.join(output_folder, "second_gating.pdf"), format="pdf")
+    
     return plt
 
-def third_gating_plot(sample: fk.Sample) -> plt:
+def third_gating_plot(sample: fk.Sample, output_folder: str) -> float | None:
     x_label = Chan.Comp_mEmerald_A
     y_label = Chan.Comp_mCherry_A
     
     biex_xform = fk.transforms.WSPBiexTransform(
         'biex',
-        max_value=10000000,
-        positive=4.9,
-        width=-100,
-        negative=0
+        max_value=Config.max_value,
+        positive=Config.pos,
+        width=Config.width,
+        negative=Config.neg
     )
     
     sample.apply_transform(biex_xform)
@@ -105,6 +109,28 @@ def third_gating_plot(sample: fk.Sample) -> plt:
     x_median = np.median(x)
     y_median = np.median(y)
     
+    # Define the quadrants
+    quadrant_1 = df[(df[x_label] > x_median) & (df[y_label] > y_median)]
+    quadrant_2 = df[(df[x_label] <= x_median) & (df[y_label] > y_median)]
+    quadrant_3 = df[(df[x_label] <= x_median) & (df[y_label] <= y_median)]
+    quadrant_4 = df[(df[x_label] > x_median) & (df[y_label] <= y_median)]
+    
+    # Calculate populations
+    D = len(quadrant_2)  # Double transfected cells
+    G = len(quadrant_3)  # mEmerald cells (Green)
+    R = len(quadrant_1)  # mCherry cells (Red)
+    U = len(quadrant_4)  # Untransfected cells
+    
+    total_cells = len(df)
+    if total_cells == 0:
+        fetch_score = None
+    else:
+        fetch_score = D / (D + G + R) if (D + G + R) != 0 else None
+    
+    # Handle cases where the score should be null/error
+    if U / total_cells > 0.9 or (fetch_score is not None and fetch_score > 0.9):
+        fetch_score = None
+
     plt.scatter(x,y, alpha=0.5, c='black', s=1)
     plt.axvline(x=x_median, color='black', linestyle='--', linewidth=1)
     plt.axhline(y=y_median, color='black', linestyle='--', linewidth=1)
@@ -113,4 +139,6 @@ def third_gating_plot(sample: fk.Sample) -> plt:
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     
-    return plt
+    plt.savefig(os.path.join(output_folder, "third_gating.pdf"), format="pdf")
+    
+    return fetch_score

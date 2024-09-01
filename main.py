@@ -1,8 +1,9 @@
 import argparse
 import os
 import shutil
-from gating import first_gating_plot, second_gating_plot, third_gating_plot
 import flowkit as fk
+from gating import first_gating_plot, second_gating_plot, third_gating_plot
+from utils import save_fetch_score
 
 def process_files(target_folder, skip_files, overwrite):
     # Ensure the target folder exists
@@ -11,6 +12,8 @@ def process_files(target_folder, skip_files, overwrite):
         return
     # list all .fcs files in target folder
     fcs_files = [f for f in os.listdir(target_folder) if f.endswith('.fcs')]
+    
+    fetch_scores = []
 
     for fcs_file in fcs_files:
         if fcs_file in skip_files:
@@ -34,13 +37,15 @@ def process_files(target_folder, skip_files, overwrite):
         filepath = os.path.join(target_folder, fcs_file)
         sample = fk.Sample(filepath)
         df = sample.as_dataframe(source='raw')
-        plt = first_gating_plot(df)
-        plt.savefig(os.path.join(output_folder, "first_gating.pdf"), format="pdf")
-        plt = second_gating_plot(df)
-        plt.savefig(os.path.join(output_folder,"second_gating.pdf"), format="pdf")
-        plt = third_gating_plot(sample)
-        plt.savefig(os.path.join(output_folder,"third_gating.pdf"), format="pdf")
-    
+        first_gating_plot(df, output_folder)
+        second_gating_plot(df, output_folder)
+        fetch_score = third_gating_plot(sample, output_folder)
+        fetch_scores.append({
+            'file': fcs_file,
+            'fetch_score': fetch_score
+        })
+    # Save all FETCH scores to a CSV file
+    save_fetch_score(fetch_scores, target_folder)
     
 def main():
     parser = argparse.ArgumentParser(description="FETCH Analysis Pipeline")
