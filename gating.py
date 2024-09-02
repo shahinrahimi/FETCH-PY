@@ -5,7 +5,10 @@ import matplotlib.ticker as ticker
 import seaborn as sns
 from scipy import stats
 from config import Config
+from utils import log
 import os
+from sklearn.preprocessing import StandardScaler
+
 
 plt.switch_backend('agg')
 plt.ioff()
@@ -151,14 +154,32 @@ def third_gating_plot(sample: fk.Sample, output_folder: str) -> float | str | No
     else:
         fetch_score = D / (D + G + R) if (D + G + R) != 0 else None
     
-    # cases where the score should be null/error
+    # Cases where the score should be null/error
     if U / total_cells > 0.9:
         fetch_score = 'error/null'
-    # cases where the score should be error/null
+    # Cases where the score should be error/null
     elif fetch_score is not None and fetch_score > 0.9:
         fetch_score = 'null/error'
+        
+    # Calculate KDE
+    kde = stats.gaussian_kde([x, y])
+    # Evaluate the KDE on a grid of points
+    # xmin, xmax = min(x), max(x)
+    # ymin, ymax = min(y), max(y)
+    # log(f"xmin: {xmin} x:max {xmax}")
+    # log(f"ymin: {ymin} y:max {ymax}")
     
-    sns.kdeplot(x=x, y=y, cmap="coolwarm", fill=False, thresh=0.2, levels=30, linewidths=0.5)
+    # xx, yy = np.mgrid[xmin:xmax:1000j, ymin:ymax:1000j]
+    # positions = np.vstack([xx.ravel(), yy.ravel()])
+    # density = np.reshape(kde(positions).T, xx.shape)
+    # log(f"min density: {density.min()} max density {density.max()}")
+    
+    # Specify custom levels
+    # levels = np.geomspace(4.6722750452452243e-08, density.max(), num=10)
+    #
+    #levels = np.linspace(density.min(), density.max(), 10) 
+    
+    sns.kdeplot(x=x, y=y,bw_adjust=0.3, cmap="coolwarm", fill=False, levels=30, thresh=0.25,linewidths=0.1)
 
     plt.scatter(x,y, alpha=0.5, c='black', s=1)
     plt.axvline(x=x_median, color='black', linestyle='--', linewidth=1)
