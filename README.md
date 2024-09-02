@@ -30,6 +30,9 @@ python main.py -f <target_folder> -e <skip_files> -w <overwrite>
  - `-w` or `--overwrite`: Whether to overwrite existing results (default is `True`).
 
  ### Example
+```
+python main.py -f example -e skip1.fcs skip2.fcs -w True
+```
 
  ## Parameters
  ### Biexponential Transformation Parameters
