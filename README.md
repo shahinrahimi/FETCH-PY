@@ -8,7 +8,7 @@ This repository aims to streamline the analysis workflow, which includes quality
 clone repository
 ```
 git clone https://github.com/shahinrahimi/FETCH-PY.git
-cd fetch-analysis
+cd FETCH-PY
 ```
 create environment
 ```
