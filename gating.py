@@ -51,6 +51,15 @@ def first_gating_plot(df, output_folder: str):
     plt.savefig(os.path.join(output_folder, "first_gating.pdf"), format="pdf")
 
 def second_gating_plot(df, output_folder: str, sd_df=2) -> plt:
+    
+    def apply_filters(df):
+        # Filter out data points based on the specified criteria
+        df_filtered = df[(df[Chan.FSC_A] <= 4.2e6) & (df[Chan.FSC_A] >= 50000) &
+                        (df[Chan.SSC_A] <= 4.2e6) & (df[Chan.SSC_A] >= 50000)]
+        return df_filtered
+    
+    df = apply_filters(df)
+
     x_label = Chan.FSC_A
     y_label = Chan.FSC_H
     x = df[x_label]
@@ -62,22 +71,25 @@ def second_gating_plot(df, output_folder: str, sd_df=2) -> plt:
     # Calculate the residuals and standard deviation of residuals
     residuals = y - fitted_values
     std_dev = np.std(residuals)
-    # Define the upper and lower gate lines (4 standard deviations away)
+    # Define the upper and lower gate lines (default 2 standard deviations away)
     upper_gate = fitted_values + (sd_df * std_dev)
     lower_gate = fitted_values - (sd_df * std_dev)
+    within_gate = (y >= lower_gate) & (y <= upper_gate)
+    outside_gate = (y < lower_gate) | (y > upper_gate)
     
     # Plot the data and the gating lines
     plt.figure(figsize=(10, 10))
     
     # Scatter plot
-    plt.scatter(x, y, alpha=0.5, c='yellow', s=1)
+    plt.scatter(x[within_gate], y[within_gate], alpha=0.5, c='yellow', s=1, label="Within Gate")
+    plt.scatter(x[outside_gate], y[outside_gate], alpha=0.5, c='black', s=1, label="Outside Gate")
     
     # Plot the line of best fit
-    plt.plot(x, fitted_values, color='blue', label='Line of Best Fit')
+    plt.plot(x, fitted_values, color='red', label='Line of Best Fit')
     
     # Plot the upper and lower gating lines
-    plt.plot(x, upper_gate, color='red', linestyle='--', label=f'Upper Gate ({sd_df} SD)')
-    plt.plot(x, lower_gate, color='green', linestyle='--', label=f'Lower Gate ({sd_df} SD)')
+    plt.plot(x, upper_gate, color='green', label=f'Upper Gate ({sd_df} SD)')
+    plt.plot(x, lower_gate, color='blue', label=f'Lower Gate ({sd_df} SD)')
     
     # Set axis limits if needed
     plt.xlim(0, 4.2e6)
@@ -86,6 +98,8 @@ def second_gating_plot(df, output_folder: str, sd_df=2) -> plt:
     # Labeling the ticks with "5 positive decades"
     plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda val, pos: f'{int(val):e}'))
     plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda val, pos: f'{int(val):e}'))
+    
+    plt.xticks(rotation=45)
     
     # Add labels and legend
     plt.title(f'{x_label} vs {y_label} with Gating Lines')
@@ -143,6 +157,8 @@ def third_gating_plot(sample: fk.Sample, output_folder: str) -> float | str | No
     # cases where the score should be error/null
     elif fetch_score is not None and fetch_score > 0.9:
         fetch_score = 'null/error'
+    
+    sns.kdeplot(x=x, y=y, cmap="coolwarm", fill=False, thresh=0.2, levels=30, linewidths=0.5)
 
     plt.scatter(x,y, alpha=0.5, c='black', s=1)
     plt.axvline(x=x_median, color='black', linestyle='--', linewidth=1)

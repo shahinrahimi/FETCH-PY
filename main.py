@@ -6,7 +6,7 @@ from gating import check_channels, first_gating_plot, second_gating_plot, third_
 from utils import save_results, log
 
 def process_files(target_folder, skip_files, overwrite):
-    # Ensure the target folder exists
+    # Check if target folder exists
     if not os.path.exists(target_folder):
         log(f"Target folder {target_folder} does not exist.")
         return
