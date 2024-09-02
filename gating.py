@@ -7,6 +7,9 @@ from scipy import stats
 from config import Config
 import os
 
+plt.switch_backend('agg')
+plt.ioff()
+
 class Chan():
     SSC_H = 'SSC-H'
     SSC_A = 'SSC-A'
@@ -21,6 +24,13 @@ class Chan():
     @classmethod
     def required_channels(cls) -> list[str]:
         return [getattr(cls, attr) for attr in dir(cls) if not attr.startswith('__') and not callable(getattr(cls, attr))]
+    
+def check_channels(sample: fk.Sample) -> bool:
+    chns = list(sample.channels["pnn"])
+    for channel in Chan.required_channels():
+        if channel not in chns:
+            return False  
+    return True
     
 
 def first_gating_plot(df, output_folder: str):
@@ -87,7 +97,7 @@ def second_gating_plot(df, output_folder: str, sd_df=2) -> plt:
     
     return plt
 
-def third_gating_plot(sample: fk.Sample, output_folder: str) -> float | None:
+def third_gating_plot(sample: fk.Sample, output_folder: str) -> float | str | None:
     x_label = Chan.Comp_mEmerald_A
     y_label = Chan.Comp_mCherry_A
     
@@ -127,9 +137,12 @@ def third_gating_plot(sample: fk.Sample, output_folder: str) -> float | None:
     else:
         fetch_score = D / (D + G + R) if (D + G + R) != 0 else None
     
-    # Handle cases where the score should be null/error
-    if U / total_cells > 0.9 or (fetch_score is not None and fetch_score > 0.9):
-        fetch_score = None
+    # cases where the score should be null/error
+    if U / total_cells > 0.9:
+        fetch_score = 'error/null'
+    # cases where the score should be error/null
+    elif fetch_score is not None and fetch_score > 0.9:
+        fetch_score = 'null/error'
 
     plt.scatter(x,y, alpha=0.5, c='black', s=1)
     plt.axvline(x=x_median, color='black', linestyle='--', linewidth=1)

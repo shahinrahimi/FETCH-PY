@@ -1,7 +1,14 @@
 import pandas as pd
 import os
-def save_fetch_score(fetch_scores, output_folder):
-    df = pd.DataFrame(fetch_scores)
-    csv_path = os.path.join(output_folder, "fetch_scores.csv")
+import datetime
+
+def log(msg: str):
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[FETCH-PY] {current_time} {msg}")
+    
+    
+def save_results(results, output_folder):
+    df = pd.DataFrame(results)
+    csv_path = os.path.join(output_folder, "results.csv")
     df.to_csv(csv_path, index=False)
-    print(f"Fetch scores saved to {csv_path}")
+    log(f"Results saved to {csv_path}")
