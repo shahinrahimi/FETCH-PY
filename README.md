@@ -39,14 +39,12 @@ python main.py -f example -e skip1.fcs skip2.fcs -w True
  The pipeline uses a biexponential transformation for data processing. You can adjust the following parameters in the Config class:
   ```python
  class Config:
-    max_value: int = 10000000
-    width: int = -100
-    pos: float = 4.9
-    neg: float = 0
+    width_multi: int = 0.00001
+    pos: float = 4.418540
+    neg: float = 0.5
 
  ```
- - `max_value`: The maximum value for the data to be transformed. Default is `10,000,000`.
- - `width`: The width of the linear region of the transformation. Controls the smoothness of the transition between linear and logarithmic regions. Default is `-100`.
- - `pos`: The positive minimum value for the transformation. Defines where the transition to the linear region starts. Default is `4.9`.
- - `neg`: The negative minimum value for the transformation. Sets the minimum threshold for negative values. Default is `0`.
+ - `width_multi`: The width of the linear region of the transformation. Controls the smoothness of the transition between linear and logarithmic regions. Default is `0.00001`.
+ - `pos`: The positive minimum value for the transformation. Defines where the transition to the linear region starts. Default is `4.418540`.
+ - `neg`: The negative minimum value for the transformation. Sets the minimum threshold for negative values. Default is `0.5`.
 
