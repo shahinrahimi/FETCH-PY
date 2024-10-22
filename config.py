@@ -4,16 +4,9 @@ class Config:
 
     Attributes:
     ----------
-    max_value : int
-        The maximum value for the data to be transformed. This value sets the upper limit 
-        for the transformation. Typically, this is set to a large number to encompass the 
-        entire range of your data. Default is 10,000,000.
-
-    width : int
+    width_multi : int
         The width of the linear region of the transformation. This parameter controls the 
-        smoothness of the transition between the linear and logarithmic regions. A negative 
-        value can be used to adjust the width in a way that suits the data characteristics. 
-        Default is -100.
+        smoothness of the transition between the linear and logarithmic regions.
 
     pos : float
         The positive minimum value for the transformation. This value defines the lower 
@@ -25,7 +18,6 @@ class Config:
         for the negative side of the data, which is important for data that might include 
         negative values or for symmetric scaling. Default is 0.
     """
-    max_value:int = 10000000
-    width:int = -100
-    pos:float = 4.9 
-    neg:float = 0 # range 0-1
+    width_multi:int = 0.00001
+    pos:float = 4.418540 
+    neg:float = 0.5 # range 0-1

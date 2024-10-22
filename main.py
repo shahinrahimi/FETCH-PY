@@ -22,6 +22,7 @@ def process_files(target_folder, skip_files, overwrite):
         # Load the sample 
         filepath = os.path.join(target_folder, fcs_file)
         sample = fk.Sample(filepath)
+        # df_events
         df = sample.as_dataframe(source='raw')
         
         if check_channels(sample):
@@ -40,9 +41,11 @@ def process_files(target_folder, skip_files, overwrite):
                 os.makedirs(output_folder)
             
             # The gating procedures and save the plots
-            first_gating_plot(df, output_folder)
-            second_gating_plot(df, output_folder)
-            fetch_score = third_gating_plot(sample, output_folder)
+            # should return df by applying the gate
+            df = first_gating_plot(df, output_folder)
+            # should return df by applying 2nd gate
+            df = second_gating_plot(df, output_folder)
+            fetch_score = third_gating_plot(df, output_folder)
             results.append({
                 'file_name': fcs_file,
                 'has_required_channels': True,
