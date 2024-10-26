@@ -102,8 +102,8 @@ def second_gating_plot(df: pd.DataFrame, output_folder: str, sd_df=2) -> pd.Data
     plt.plot(fsc_a, predicted_fsc_h, color='green', label='Fitted Line', linewidth=2)
     upper_bound = predicted_fsc_h + gate_threshold
     lower_bound = predicted_fsc_h - gate_threshold
-    plt.plot(fsc_a, upper_bound, color='red', linestyle='--', label='Upper Bound (+4σ)', linewidth=1)
-    plt.plot(fsc_a, lower_bound, color='red', linestyle='--', label='Lower Bound (-4σ)', linewidth=1)
+    plt.plot(fsc_a, upper_bound, color='red', linestyle='--', label=f'Upper Bound (+{sd_df}σ)', linewidth=1)
+    plt.plot(fsc_a, lower_bound, color='red', linestyle='--', label=f'Lower Bound (-{sd_df}σ)', linewidth=1)
     
     # Labeling the ticks with "5 positive decades"
     plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda val, pos: f'{int(val):e}'))
@@ -253,6 +253,6 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
     plt.axhline(y=hline, color='black', linestyle='--', linewidth=1)
     plt.axvline(x=vline, color='black', linestyle='--', linewidth=1)
     
-    plt.savefig(os.path.join(output_folder, 'third_gate.png'))
+    plt.savefig(os.path.join(output_folder, 'third_gate.pdf'), format="pdf")
     return fetch_score
     
