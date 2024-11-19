@@ -7,8 +7,8 @@ def log(msg: str):
     print(f"[FETCH-PY] {current_time} {msg}")
     
     
-def save_results(results, output_folder):
+def save_results(results, output_folder, filename):
     df = pd.DataFrame(results)
-    csv_path = os.path.join(output_folder, "results.csv")
+    csv_path = os.path.join(output_folder, filename)
     df.to_csv(csv_path, index=False)
     log(f"Results saved to {csv_path}")

@@ -66,7 +66,7 @@ def process_files(target_folder, skip_files, overwrite):
             })
     
     # Save results
-    save_results(results, output_base_folder)
+    save_results(results, output_base_folder, f"{target_folder}_results.csv")
 
     
 def main():
