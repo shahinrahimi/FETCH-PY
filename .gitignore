@@ -4,6 +4,7 @@ __pycache__/*
 *$py.class
 
 /example/*
+/*_results/*
 
 !example/E10 Well_58.fcs
 !example/G11 Well_083.fcs

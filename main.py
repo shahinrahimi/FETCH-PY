@@ -10,6 +10,12 @@ def process_files(target_folder, skip_files, overwrite):
     if not os.path.exists(target_folder):
         log(f"Target folder {target_folder} does not exist.")
         return
+    # define output folder
+    output_base_folder = f"{target_folder}_results"
+    if not os.path.exists(output_base_folder):
+        os.makedirs(output_base_folder)
+        log(f"Created results folder {output_base_folder}")
+        
     # list all .fcs files in target folder
     fcs_files = [f for f in os.listdir(target_folder) if f.endswith('.fcs')]
         
@@ -27,7 +33,7 @@ def process_files(target_folder, skip_files, overwrite):
         
         if check_channels(sample):
             # Create the output folder for the file has required channels
-            output_folder = os.path.join(target_folder, os.path.splitext(fcs_file)[0])
+            output_folder = os.path.join(output_base_folder, os.path.splitext(fcs_file)[0])
         
             if os.path.exists(output_folder):
                 if overwrite:
@@ -60,7 +66,7 @@ def process_files(target_folder, skip_files, overwrite):
             })
     
     # Save results
-    save_results(results, target_folder)
+    save_results(results, output_base_folder)
 
     
 def main():
