@@ -65,8 +65,8 @@ def process_files(target_folder, skip_files, overwrite):
                 fetch_score = 0
             
             # Calculate red-to-green ratio (r_g) if applicable
-            if 'mApple-A' in df.columns and 'mEmerald-A' in df.columns:
-                red_cells = len(df[df['mApple-A'] > 4200])
+            if 'mCherry-A' in df.columns and 'mEmerald-A' in df.columns:
+                red_cells = len(df[df['mCherry-A'] > 4200])
                 green_cells = len(df[df['mEmerald-A'] > 4200])
                 r_g = red_cells / green_cells if green_cells > 0 else float('nan')
             else:
@@ -82,7 +82,7 @@ def process_files(target_folder, skip_files, overwrite):
             # Add gate boundaries for verification
             if gate_boundaries:
                 log(f"{fcs_file} gate boundaries: Vertical Line - {gate_boundaries['vline']}, Horizontal Line - {gate_boundaries['hline']}")
-                if gate_boundaries['hline'] == (df['mApple-A'].max() + df['mApple-A'].min()) / 2:
+                if gate_boundaries['hline'] == (df['mCherry-A'].max() + df['mCherry-A'].min()) / 2:
                     log(f"Warning: Horizontal gate boundary for {fcs_file} is set at the midpoint of the y-axis. Please verify gating logic.")
             
             results.append({

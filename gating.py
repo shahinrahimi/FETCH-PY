@@ -22,7 +22,7 @@ class Chan():
     SSC_B_H = 'SSC-B-H'
     SSC_B_A = 'SSC-B-A'
     Comp_mEmerald_A = 'mEmerald-A'
-    Comp_mApple_A = 'mApple-A'
+    Comp_mCherry_A = 'mCherry-A'
     AF_A = 'AF-A'
     Time = 'Time'
     @classmethod
@@ -123,12 +123,12 @@ def second_gating_plot(df: pd.DataFrame, output_folder: str, sd_df=2) -> pd.Data
 
 def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | None:
     x_label = Chan.Comp_mEmerald_A
-    y_label = Chan.Comp_mApple_A
+    y_label = Chan.Comp_mCherry_A
 
     sam = fk.Sample(df, sample_id="Gated Test")
     df2 = sam.as_dataframe(source='raw')
     x = df2[Chan.Comp_mEmerald_A]
-    y = df2[Chan.Comp_mApple_A]
+    y = df2[Chan.Comp_mCherry_A]
     
     # specify transform values
     max_value = max(x.max(), y.max())
@@ -227,12 +227,12 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
     )
     
     # Quadrant calculations
-    quadrant_1 = df2[(df2[x_label] < vline) & (df2[y_label] > hline)]  # HIGH Y and LOW X (High mApple)
+    quadrant_1 = df2[(df2[x_label] < vline) & (df2[y_label] > hline)]  # HIGH Y and LOW X (High mCherry)
     quadrant_3 = df2[(df2[x_label] > vline) & (df2[y_label] < hline)]  # LOW Y and HIGH X (High eEmerald)
     quadrant_2 = df2[(df2[x_label] > vline) & (df2[y_label] > hline)]  # HIGH Y and HIGH X (Double Transfected)
     quadrant_4 = df2[(df2[x_label] < vline) & (df2[y_label] < hline)]  # LOW Y and LOW X (Untransfected)
     
-    R = len(quadrant_1)  # mApple cells (Red)
+    R = len(quadrant_1)  # mCherry cells (Red)
     G = len(quadrant_3)  # mEmerald cells (Green)
     D = len(quadrant_2)  # Double transfected cells
     U = len(quadrant_4)  # Untransfected cells
