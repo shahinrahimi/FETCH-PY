@@ -22,7 +22,7 @@ class Chan():
     SSC_B_H = 'SSC-B-H'
     SSC_B_A = 'SSC-B-A'
     Comp_mEmerald_A = 'mEmerald-A'
-    Comp_mCherry_A = 'mCherry-A'
+    Comp_mApple_A = 'mApple-A'
     AF_A = 'AF-A'
     Time = 'Time'
     @classmethod
@@ -102,8 +102,8 @@ def second_gating_plot(df: pd.DataFrame, output_folder: str, sd_df=2) -> pd.Data
     plt.plot(fsc_a, predicted_fsc_h, color='green', label='Fitted Line', linewidth=2)
     upper_bound = predicted_fsc_h + gate_threshold
     lower_bound = predicted_fsc_h - gate_threshold
-    plt.plot(fsc_a, upper_bound, color='red', linestyle='--', label=f'Upper Bound (+{sd_df}σ)', linewidth=1)
-    plt.plot(fsc_a, lower_bound, color='red', linestyle='--', label=f'Lower Bound (-{sd_df}σ)', linewidth=1)
+    plt.plot(fsc_a, upper_bound, color='red', linestyle='--', label='Upper Bound (+4σ)', linewidth=1)
+    plt.plot(fsc_a, lower_bound, color='red', linestyle='--', label='Lower Bound (-4σ)', linewidth=1)
     
     # Labeling the ticks with "5 positive decades"
     plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda val, pos: f'{int(val):e}'))
@@ -123,12 +123,13 @@ def second_gating_plot(df: pd.DataFrame, output_folder: str, sd_df=2) -> pd.Data
 
 def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | None:
     x_label = Chan.Comp_mEmerald_A
-    y_label = Chan.Comp_mCherry_A
+    y_label = Chan.Comp_mApple_A
 
     sam = fk.Sample(df, sample_id="Gated Test")
     df2 = sam.as_dataframe(source='raw')
     x = df2[Chan.Comp_mEmerald_A]
-    y = df2[Chan.Comp_mCherry_A]
+    y = df2[Chan.Comp_mApple_A]
+    
     # specify transform values
     max_value = max(x.max(), y.max())
     rng = max(x.max() - x.min(), y.max() - y.min())
@@ -156,7 +157,7 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
     
     # Kernel Density Estimation
     data = np.vstack([x, y]).T
-    # Grid search over badwandwidth in log-space
+    # Grid search over bandwidth in log-space
     bandwidths = np.logspace(-2, 1, 50)
     grid = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths}, cv=5)
     grid.fit(data)
@@ -178,7 +179,7 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
     normalize_levels = (levels - min_val) / (max_val - min_val)
     sorted_normalize_levels = np.sort(normalize_levels)
     
-    plt.figure (figsize=(10, 10))
+    plt.figure(figsize=(10, 10))
     ax = sns.kdeplot(
         x=x, 
         y=y,
@@ -191,9 +192,8 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
         legend=True
     )
     
-   
     def get_first_best_lines(paths, lvl):
-        for j,path in enumerate(paths):
+        for j, path in enumerate(paths):
             level = sorted_normalize_levels[j % len(sorted_normalize_levels)]
             if level < lvl:
                 continue
@@ -202,18 +202,18 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
             y_mean = np.mean(y)
             x_vertices = vertices[:, 0]
             y_vertices = vertices[:, 1]
-            mask = (x_vertices < x_mean) & (y_vertices < y_mean) # grab Q4 points
+            mask = (x_vertices < x_mean) & (y_vertices < y_mean)  # grab Q4 points
             valid_x_vertices = x_vertices[mask]
             valid_y_vertices = y_vertices[mask]
             vline = np.max(valid_x_vertices)
             hline = np.max(valid_y_vertices)
             return vline, hline
         
-    target_contour = ax.collections[0] # collection has one contour level
+    target_contour = ax.collections[0]  # collection has one contour level
     paths = target_contour.get_paths()
     vline, hline = get_first_best_lines(paths, 0.6)
     
-    plt.figure (figsize=(10, 10))
+    plt.figure(figsize=(10, 10))
     sns.kdeplot(
         x=x, 
         y=y,
@@ -225,34 +225,45 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
         linewidths=1,
         legend=True
     )
-    quadrant_1 = df2[(df2[x_label] < vline) & (df2[y_label] > hline)] # HIGH Y and LOW X (High mCherry)
-    quadrant_3 = df2[(df2[x_label] > vline) & (df2[y_label] < hline)] # LOW Y and HIGH X (High eEmerald)
-    quadrant_2 = df2[(df2[x_label] > vline) & (df2[y_label] > hline)] # HIGH Y and HIGH X (Double Transfected)
-    quadrant_4 = df2[(df2[x_label] < vline) & (df2[y_label] > hline)] # LOW Y and LOW X (Double Transfected)
-    R = len(quadrant_1)  # mCherry cells (Red)
+    
+    # Quadrant calculations
+    quadrant_1 = df2[(df2[x_label] < vline) & (df2[y_label] > hline)]  # HIGH Y and LOW X (High mApple)
+    quadrant_3 = df2[(df2[x_label] > vline) & (df2[y_label] < hline)]  # LOW Y and HIGH X (High eEmerald)
+    quadrant_2 = df2[(df2[x_label] > vline) & (df2[y_label] > hline)]  # HIGH Y and HIGH X (Double Transfected)
+    quadrant_4 = df2[(df2[x_label] < vline) & (df2[y_label] < hline)]  # LOW Y and LOW X (Untransfected)
+    
+    R = len(quadrant_1)  # mApple cells (Red)
     G = len(quadrant_3)  # mEmerald cells (Green)
     D = len(quadrant_2)  # Double transfected cells
     U = len(quadrant_4)  # Untransfected cells
-    fetch_score = D / (D + G + R) if (D + G + R) != 0 else None
-    if fetch_score is None:
-        fetch_score_string = "None"
-    else:
-        fetch_score_string = f'{fetch_score:.2f}'
+    total_population = D + G + R + U
     
+    # Calculate fetch score
+    fetch_score = D / (D + G + R) if (D + G + R) != 0 else None
+
+    # Disqualify based on untransfected proportion or fetch score
+    if total_population != 0:
+        untransfected_proportion = U / total_population
+        if untransfected_proportion > 0.9:
+            fetch_score = 0
+        elif fetch_score is not None and fetch_score > 0.9:
+            fetch_score = 0
+
+    # Plotting the quadrants and fetch score
     xlim = plt.gca().get_xlim()
     ylim = plt.gca().get_ylim()
-    bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5')
+    bbox = dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5')
     
     plt.text(xlim[1], ylim[1], f'Q2 D: {D}', fontsize=10, verticalalignment='top', horizontalalignment='right', color='blue', bbox=bbox)
-    plt.text(xlim[0], ylim[1], f'Q1 R: {R}', fontsize=10, verticalalignment='top',horizontalalignment='left', color='red', bbox=bbox)
-    plt.text(xlim[1], ylim[0], f'Q3 G: {G}', fontsize=10, verticalalignment='bottom',horizontalalignment='right', color='green', bbox=bbox)
-    plt.text(xlim[0], ylim[0], f'Q4 U: {U}', fontsize=10, verticalalignment='bottom',horizontalalignment='left', color='black', bbox=bbox)
+    plt.text(xlim[0], ylim[1], f'Q1 R: {R}', fontsize=10, verticalalignment='top', horizontalalignment='left', color='red', bbox=bbox)
+    plt.text(xlim[1], ylim[0], f'Q3 G: {G}', fontsize=10, verticalalignment='bottom', horizontalalignment='right', color='green', bbox=bbox)
+    plt.text(xlim[0], ylim[0], f'Q4 U: {U}', fontsize=10, verticalalignment='bottom', horizontalalignment='left', color='black', bbox=bbox)
     plt.scatter(x, y, alpha=0.1, c='black', s=1, label='Data Points')
-    plt.title(f'{x_label} vs {y_label} Scatter Plot\nfetch score: {fetch_score_string}')
-            
+    plt.title(f'{x_label} vs {y_label} Scatter Plot\nfetch score: {fetch_score:.2f}' if fetch_score is not None else "fetch score: None")
+    
     plt.axhline(y=hline, color='black', linestyle='--', linewidth=1)
     plt.axvline(x=vline, color='black', linestyle='--', linewidth=1)
     
-    plt.savefig(os.path.join(output_folder, 'third_gate.pdf'), format="pdf")
-    return fetch_score
+    plt.savefig(os.path.join(output_folder, 'third_gate.png'))
     
+    return fetch_score

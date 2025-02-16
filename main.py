@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 import flowkit as fk
+import pandas as pd
 from gating import check_channels, first_gating_plot, second_gating_plot, third_gating_plot
 from utils import save_results, log
 
@@ -10,12 +11,6 @@ def process_files(target_folder, skip_files, overwrite):
     if not os.path.exists(target_folder):
         log(f"Target folder {target_folder} does not exist.")
         return
-    # define output folder
-    output_base_folder = f"{target_folder}_results"
-    if not os.path.exists(output_base_folder):
-        os.makedirs(output_base_folder)
-        log(f"Created results folder {output_base_folder}")
-        
     # list all .fcs files in target folder
     fcs_files = [f for f in os.listdir(target_folder) if f.endswith('.fcs')]
         
@@ -31,9 +26,12 @@ def process_files(target_folder, skip_files, overwrite):
         # df_events
         df = sample.as_dataframe(source='raw')
         
+        # Log available channel names for verification
+        log(f"Available channels for {fcs_file}: {list(df.columns)}")
+        
         if check_channels(sample):
             # Create the output folder for the file has required channels
-            output_folder = os.path.join(output_base_folder, os.path.splitext(fcs_file)[0])
+            output_folder = os.path.join(target_folder, os.path.splitext(fcs_file)[0])
         
             if os.path.exists(output_folder):
                 if overwrite:
@@ -51,22 +49,59 @@ def process_files(target_folder, skip_files, overwrite):
             df = first_gating_plot(df, output_folder)
             # should return df by applying 2nd gate
             df = second_gating_plot(df, output_folder)
-            fetch_score = third_gating_plot(df, output_folder)
+            result = third_gating_plot(df, output_folder)
+            
+            if isinstance(result, tuple):
+                fetch_score, gate_boundaries = result
+            else:
+                fetch_score = result
+                gate_boundaries = None
+            
+            # Dubious check conditions
+            dubious = 'no'
+            if fetch_score is None or fetch_score > 0.90:
+                dubious = 'yes'
+                log(f"{fcs_file} marked as dubious due to high FETCH score or missing data.")
+                fetch_score = 0
+            
+            # Calculate red-to-green ratio (r_g) if applicable
+            if 'mApple-A' in df.columns and 'mEmerald-A' in df.columns:
+                red_cells = len(df[df['mApple-A'] > 4200])
+                green_cells = len(df[df['mEmerald-A'] > 4200])
+                r_g = red_cells / green_cells if green_cells > 0 else float('nan')
+            else:
+                log(f"{fcs_file} is missing required fluorescence channels for red-to-green ratio calculation.")
+                r_g = float('nan')
+            
+            # Additional dubious checks
+            if r_g >= 2 or r_g <= 0.5 or len(df) < 500 or pd.isna(r_g):
+                dubious = 'yes'
+                log(f"{fcs_file} marked as dubious due to r_g ratio or low cell count.")
+                fetch_score = 0
+            
+            # Add gate boundaries for verification
+            if gate_boundaries:
+                log(f"{fcs_file} gate boundaries: Vertical Line - {gate_boundaries['vline']}, Horizontal Line - {gate_boundaries['hline']}")
+                if gate_boundaries['hline'] == (df['mApple-A'].max() + df['mApple-A'].min()) / 2:
+                    log(f"Warning: Horizontal gate boundary for {fcs_file} is set at the midpoint of the y-axis. Please verify gating logic.")
+            
             results.append({
                 'file_name': fcs_file,
                 'has_required_channels': True,
-                'fetch_score': fetch_score
+                'fetch_score': fetch_score,
+                'dubious': dubious
             })
         else:
             log(f"{fcs_file} is missing required channels, skipping analysis.")
             results.append({
                 'file_name': fcs_file,
                 'has_required_channels': False,
-                'fetch_score': 'N/A'
+                'fetch_score': 'N/A',
+                'dubious': 'N/A'
             })
     
     # Save results
-    save_results(results, output_base_folder, f"{target_folder}_results.csv")
+    save_results(results, target_folder)
 
     
 def main():
