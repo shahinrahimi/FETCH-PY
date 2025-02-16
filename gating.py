@@ -21,22 +21,24 @@ class Chan():
     FSC_A = 'FSC-A'
     SSC_B_H = 'SSC-B-H'
     SSC_B_A = 'SSC-B-A'
-    Comp_mEmerald_A = 'mEmerald-A'
-    Comp_mCherry_A = 'mCherry-A'
-    AF_A = 'AF-A'
+    B1_A = 'B1-A'  # Updated
+    YG3_A = 'YG3-A'  # Updated
     Time = 'Time'
+    
     @classmethod
     def required_channels(cls) -> list[str]:
         return [getattr(cls, attr) for attr in dir(cls) if not attr.startswith('__') and not callable(getattr(cls, attr))]
-    
+
 def check_channels(sample: fk.Sample) -> bool:
-    chns = list(sample.channels["pnn"])
-    for channel in Chan.required_channels():
-        if channel not in chns:
-            return False  
+    chns = [ch.strip().upper() for ch in sample.channels["pnn"]]
+    required_chns = [ch.strip().upper() for ch in Chan.required_channels()]
+
+    missing_channels = [ch for ch in required_chns if ch not in chns]
+    if missing_channels:
+        print(f"Missing channels: {missing_channels}")
+        return False
     return True
     
-
 def first_gating_plot(df: pd.DataFrame, output_folder: str) -> pd.DataFrame:
     x_label = Chan.FSC_A
     y_label = Chan.SSC_A 
@@ -53,7 +55,7 @@ def first_gating_plot(df: pd.DataFrame, output_folder: str) -> pd.DataFrame:
     
     debris_threshold = 25000
     max_fsc_a, max_ssc_a = np.max(x), np.max(y)
-    valid_points = (x> debris_threshold) & (y> debris_threshold) & (x < (max_fsc_a-1000)) & (y < (max_ssc_a-1000))
+    valid_points = (x > debris_threshold) & (y > debris_threshold) & (x < (max_fsc_a - 1000)) & (y < (max_ssc_a - 1000))
     
     plt.figure(figsize=(8,6))
     plt.scatter(x, y, alpha=0.4, s=1, c='lightgrey', label='Original Data')
@@ -67,7 +69,6 @@ def first_gating_plot(df: pd.DataFrame, output_folder: str) -> pd.DataFrame:
     
     filtered_df = df[valid_points]
     return filtered_df
-    
 
 def second_gating_plot(df: pd.DataFrame, output_folder: str, sd_df=2) -> pd.DataFrame:
     x_label = Chan.FSC_A
@@ -96,8 +97,8 @@ def second_gating_plot(df: pd.DataFrame, output_folder: str, sd_df=2) -> pd.Data
     
     # Plot the data and the gating lines
     plt.figure(figsize=(8, 8))
-    plt.scatter(fsc_a,fsc_h, c='lightgrey', s=1, label="Original Data")
-    plt.scatter(fsc_a[valid_points], fsc_h[valid_points], c='black',s=1 , label='Gated Data (Gate 2)')
+    plt.scatter(fsc_a, fsc_h, c='lightgrey', s=1, label="Original Data")
+    plt.scatter(fsc_a[valid_points], fsc_h[valid_points], c='black', s=1, label='Gated Data (Gate 2)')
     # Plot the line of best fit
     plt.plot(fsc_a, predicted_fsc_h, color='green', label='Fitted Line', linewidth=2)
     upper_bound = predicted_fsc_h + gate_threshold
@@ -122,14 +123,14 @@ def second_gating_plot(df: pd.DataFrame, output_folder: str, sd_df=2) -> pd.Data
     return filtered_data
 
 def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | None:
-    x_label = Chan.Comp_mEmerald_A
-    y_label = Chan.Comp_mCherry_A
+    x_label = 'B1-A'  # Replacing Comp_mEmerald_A
+    y_label = 'YG3-A'  # Replacing Comp_mCherry_A
 
     sam = fk.Sample(df, sample_id="Gated Test")
     df2 = sam.as_dataframe(source='raw')
-    x = df2[Chan.Comp_mEmerald_A]
-    y = df2[Chan.Comp_mCherry_A]
-    
+    x = df2[x_label]
+    y = df2[y_label]
+
     # specify transform values
     max_value = max(x.max(), y.max())
     rng = max(x.max() - x.min(), y.max() - y.min())
@@ -141,20 +142,20 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
         width=-width,
         negative=Config.neg
     )
-    
+
     sam.apply_transform(biex_xform)
     df2 = sam.as_dataframe(source='xform')
-    
+
     # new transformed value
     x = df2[x_label]
     y = df2[y_label]
     # old untransformed values
     xx = df[x_label]
     yy = df[y_label]
-    
+
     # Define autofluorescence cutoff
     autofluorescence_cutoff = 4200
-    
+
     # Kernel Density Estimation
     data = np.vstack([x, y]).T
     # Grid search over bandwidth in log-space
@@ -168,17 +169,17 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
     # Filter density scores based on autofluorescence cutoff
     valid_data = (x < autofluorescence_cutoff) & (y < autofluorescence_cutoff)
     kde_values = kde.score_samples(np.vstack([x[valid_data], y[valid_data]]).T)
-    
+
     # Get the contour levels
     number_of_levels = 30
     levels = np.linspace(0, kde_values.max(), number_of_levels)
     # normalize levels [0,1]
     min_val = levels.min()
     max_val = levels.max()
-    
+
     normalize_levels = (levels - min_val) / (max_val - min_val)
     sorted_normalize_levels = np.sort(normalize_levels)
-    
+
     plt.figure(figsize=(10, 10))
     ax = sns.kdeplot(
         x=x, 
@@ -191,7 +192,7 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
         linewidths=0.1,
         legend=True
     )
-    
+
     def get_first_best_lines(paths, lvl):
         for j, path in enumerate(paths):
             level = sorted_normalize_levels[j % len(sorted_normalize_levels)]
@@ -208,11 +209,11 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
             vline = np.max(valid_x_vertices)
             hline = np.max(valid_y_vertices)
             return vline, hline
-        
+
     target_contour = ax.collections[0]  # collection has one contour level
     paths = target_contour.get_paths()
     vline, hline = get_first_best_lines(paths, 0.6)
-    
+
     plt.figure(figsize=(10, 10))
     sns.kdeplot(
         x=x, 
@@ -225,19 +226,19 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
         linewidths=1,
         legend=True
     )
-    
+
     # Quadrant calculations
-    quadrant_1 = df2[(df2[x_label] < vline) & (df2[y_label] > hline)]  # HIGH Y and LOW X (High mCherry)
-    quadrant_3 = df2[(df2[x_label] > vline) & (df2[y_label] < hline)]  # LOW Y and HIGH X (High eEmerald)
+    quadrant_1 = df2[(df2[x_label] < vline) & (df2[y_label] > hline)]  # HIGH Y and LOW X (High YG3-A)
+    quadrant_3 = df2[(df2[x_label] > vline) & (df2[y_label] < hline)]  # LOW Y and HIGH X (High B1-A)
     quadrant_2 = df2[(df2[x_label] > vline) & (df2[y_label] > hline)]  # HIGH Y and HIGH X (Double Transfected)
     quadrant_4 = df2[(df2[x_label] < vline) & (df2[y_label] < hline)]  # LOW Y and LOW X (Untransfected)
-    
-    R = len(quadrant_1)  # mCherry cells (Red)
-    G = len(quadrant_3)  # mEmerald cells (Green)
+
+    R = len(quadrant_1)  # YG3-A cells (Red)
+    G = len(quadrant_3)  # B1-A cells (Green)
     D = len(quadrant_2)  # Double transfected cells
     U = len(quadrant_4)  # Untransfected cells
     total_population = D + G + R + U
-    
+
     # Calculate fetch score
     fetch_score = D / (D + G + R) if (D + G + R) != 0 else None
 
@@ -253,17 +254,17 @@ def third_gating_plot(df: pd.DataFrame, output_folder: str) -> float | str | Non
     xlim = plt.gca().get_xlim()
     ylim = plt.gca().get_ylim()
     bbox = dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5')
-    
+
     plt.text(xlim[1], ylim[1], f'Q2 D: {D}', fontsize=10, verticalalignment='top', horizontalalignment='right', color='blue', bbox=bbox)
     plt.text(xlim[0], ylim[1], f'Q1 R: {R}', fontsize=10, verticalalignment='top', horizontalalignment='left', color='red', bbox=bbox)
     plt.text(xlim[1], ylim[0], f'Q3 G: {G}', fontsize=10, verticalalignment='bottom', horizontalalignment='right', color='green', bbox=bbox)
     plt.text(xlim[0], ylim[0], f'Q4 U: {U}', fontsize=10, verticalalignment='bottom', horizontalalignment='left', color='black', bbox=bbox)
     plt.scatter(x, y, alpha=0.1, c='black', s=1, label='Data Points')
     plt.title(f'{x_label} vs {y_label} Scatter Plot\nfetch score: {fetch_score:.2f}' if fetch_score is not None else "fetch score: None")
-    
+
     plt.axhline(y=hline, color='black', linestyle='--', linewidth=1)
     plt.axvline(x=vline, color='black', linestyle='--', linewidth=1)
-    
+
     plt.savefig(os.path.join(output_folder, 'third_gate.png'))
-    
+
     return fetch_score
