@@ -31,7 +31,8 @@ def process_files(target_folder, skip_files, overwrite):
         
         if check_channels(sample):
             # Create the output folder for the file has required channels
-            output_folder = os.path.join(target_folder, os.path.splitext(fcs_file)[0])
+            sample_name = os.path.splitext(fcs_file)[0]
+            output_folder = os.path.join(target_folder, sample_name)
         
             if os.path.exists(output_folder):
                 if overwrite:
@@ -46,10 +47,10 @@ def process_files(target_folder, skip_files, overwrite):
             
             # The gating procedures and save the plots
             # should return df by applying the gate
-            df = first_gating_plot(df, output_folder)
+            df = first_gating_plot(df, sample_name ,output_folder)
             # should return df by applying 2nd gate
-            df = second_gating_plot(df, output_folder)
-            result = third_gating_plot(df, output_folder)
+            df = second_gating_plot(df, sample_name, output_folder)
+            result = third_gating_plot(df,sample_name, output_folder)
             
             if isinstance(result, tuple):
                 fetch_score, gate_boundaries = result
