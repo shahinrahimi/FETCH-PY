@@ -28,16 +28,15 @@ class Chan():
     @classmethod
     def required_channels(cls) -> list[str]:
         return [getattr(cls, attr) for attr in dir(cls) if not attr.startswith('__') and not callable(getattr(cls, attr))]
-    
-def check_channels(sample: fk.Sample) -> bool:
-    chns = list(sample.channels["pnn"])
-    for channel in Chan.required_channels():
-        if channel not in chns:
-            return False  
-    return True
-    
+def get_missing_channels(sample: fk.Sample) -> list[str]:
+    chns = [ch.strip().upper() for ch in sample.channels["pnn"]]
+    required_chns = [ch.strip().upper() for ch in Chan.required_channels()]
 
-def first_gating_plot(df: pd.DataFrame, sample_name: str, output_folder: str) -> pd.DataFrame:
+    missing_channels = [ch for ch in required_chns if ch not in chns]
+    return missing_channels   
+   
+
+def first_gating_plot(df: pd.DataFrame, sample_name: str, output_folder: str, target_folder: str) -> pd.DataFrame:
     x_label = Chan.FSC_A
     y_label = Chan.SSC_A 
     x = df[x_label]
@@ -59,35 +58,35 @@ def first_gating_plot(df: pd.DataFrame, sample_name: str, output_folder: str) ->
     plt.figure(figsize=(8, 6))
     plt.scatter(x, y, alpha=0.4, s=1, c='lightgrey', label='Original Data')
     plt.scatter(x[valid_points], y[valid_points], alpha=0.4, s=1, c='black', label='Gated Data (Gate 1)')
-    plt.title(f'{x_label} vs {y_label} Scatter Plot\n{sample_name}')
+    # plt.title(f'{x_label} vs {y_label} Scatter Plot\n{sample_name}')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.legend()
-    plt.savefig(os.path.join(output_folder,f"{sample_name}_g1_scatter_plot.pdf"), format="pdf")
+    plt.savefig(os.path.join(output_folder,f"{target_folder}_{sample_name}_g1_scatter.pdf"), format="pdf")
     
     # Plot 2: Contour plot (KDE)
     plt.figure(figsize=(8, 6))
     plt.contour(X, Y, Z, cmap='coolwarm', levels=25, linewidths=0.5)
-    plt.title(f'{x_label} vs {y_label} KDE Contour Plot\n{sample_name}')
+    # plt.title(f'{x_label} vs {y_label} KDE Contour Plot\n{sample_name}')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    plt.savefig(os.path.join(output_folder,f"{sample_name}_g1_contour_plot.pdf"), format="pdf")
+    plt.savefig(os.path.join(output_folder,f"{target_folder}_{sample_name}_g1_contour.pdf"), format="pdf")
 
     # Plot 3: Combined plot
     plt.figure(figsize=(8, 6))
     plt.scatter(x, y, alpha=0.4, s=1, c='lightgrey', label='Original Data')
     plt.contour(X, Y, Z, cmap='coolwarm', levels=25, linewidths=0.5)
-    plt.title(f'{x_label} vs {y_label} KDE Contour Plot\n{sample_name}')
+    # plt.title(f'{x_label} vs {y_label} KDE Contour Plot\n{sample_name}')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    plt.savefig(os.path.join(output_folder,f"{sample_name}_g1_combined_plot.pdf"), format="pdf")
+    plt.savefig(os.path.join(output_folder,f"{target_folder}_{sample_name}_g1_combined.pdf"), format="pdf")
     
     filtered_df = df[valid_points]
     return filtered_df
 
     
 
-def second_gating_plot(df: pd.DataFrame, sample_name: str, output_folder: str, sd_df=2) -> pd.DataFrame:
+def second_gating_plot(df: pd.DataFrame, sample_name: str, output_folder: str, target_folder: str, sd_df=2) -> pd.DataFrame:
     x_label = Chan.FSC_A
     y_label = Chan.SSC_A
     fsc_a = df[Chan.FSC_A].values
@@ -130,16 +129,16 @@ def second_gating_plot(df: pd.DataFrame, sample_name: str, output_folder: str, s
     plt.xticks(rotation=45)
     
     # Add labels and legend
-    plt.title(f'{x_label} vs {y_label} with Gating Lines\n{sample_name}')
+    # plt.title(f'{x_label} vs {y_label} with Gating Lines\n{sample_name}')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.legend()
     
-    plt.savefig(os.path.join(output_folder,f"{sample_name}_g2.pdf"), format="pdf")
+    plt.savefig(os.path.join(output_folder,f"{target_folder}_{sample_name}_g2.pdf"), format="pdf")
     
     return filtered_data
 
-def third_gating_plot(df: pd.DataFrame, sample_name: str ,output_folder: str) -> float | str | None:
+def third_gating_plot(df: pd.DataFrame, sample_name: str ,output_folder: str, target_folder: str) -> float | str | None:
     x_label = Chan.Comp_mEmerald_A
     y_label = Chan.Comp_mCherry_A
 
@@ -278,8 +277,8 @@ def third_gating_plot(df: pd.DataFrame, sample_name: str ,output_folder: str) ->
     plt.text(xlim[0], ylim[1], f'Q1 R: {R}', fontsize=10, verticalalignment='top', horizontalalignment='left', color='red', bbox=bbox)
     plt.text(xlim[1], ylim[0], f'Q3 G: {G}', fontsize=10, verticalalignment='bottom', horizontalalignment='right', color='green', bbox=bbox)
     plt.text(xlim[0], ylim[0], f'Q4 U: {U}', fontsize=10, verticalalignment='bottom', horizontalalignment='left', color='black', bbox=bbox)
-    plt.title(f'{x_label} vs {y_label} Contour Plot\n{sample_name}')
-    plt.savefig(os.path.join(output_folder,f'{sample_name}_g3_contour_plot.png'))
+    # plt.title(f'{x_label} vs {y_label} Contour Plot\n{sample_name}')
+    plt.savefig(os.path.join(output_folder,f'{target_folder}_{sample_name}_g3_contour.png'))
     
     # Plot 2: Scatter Plot (Data points)
     plt.figure(figsize=(10, 10))
@@ -290,8 +289,8 @@ def third_gating_plot(df: pd.DataFrame, sample_name: str ,output_folder: str) ->
     plt.text(xlim[0], ylim[1], f'Q1 R: {R}', fontsize=10, verticalalignment='top', horizontalalignment='left', color='red', bbox=bbox)
     plt.text(xlim[1], ylim[0], f'Q3 G: {G}', fontsize=10, verticalalignment='bottom', horizontalalignment='right', color='green', bbox=bbox)
     plt.text(xlim[0], ylim[0], f'Q4 U: {U}', fontsize=10, verticalalignment='bottom', horizontalalignment='left', color='black', bbox=bbox)
-    plt.title(f'{x_label} vs {y_label} Scatter Plot\n{sample_name}')
-    plt.savefig(os.path.join(output_folder,f'{sample_name}_g3_scatter_plot.png'))
+    # plt.title(f'{x_label} vs {y_label} Scatter Plot\n{sample_name}')
+    plt.savefig(os.path.join(output_folder,f'{target_folder}_{sample_name}_g3_scatter.png'))
     
     # Plot 3: Combined Plot
     plt.figure(figsize=(10, 10))
@@ -313,7 +312,7 @@ def third_gating_plot(df: pd.DataFrame, sample_name: str ,output_folder: str) ->
     plt.text(xlim[0], ylim[1], f'Q1 R: {R}', fontsize=10, verticalalignment='top', horizontalalignment='left', color='red', bbox=bbox)
     plt.text(xlim[1], ylim[0], f'Q3 G: {G}', fontsize=10, verticalalignment='bottom', horizontalalignment='right', color='green', bbox=bbox)
     plt.text(xlim[0], ylim[0], f'Q4 U: {U}', fontsize=10, verticalalignment='bottom', horizontalalignment='left', color='black', bbox=bbox)
-    plt.title(f'{x_label} vs {y_label} Combined Plot\n{sample_name}')
-    plt.savefig(os.path.join(output_folder,f'{sample_name}_g3_combined_plot.png'))
+    # plt.title(f'{x_label} vs {y_label} Combined Plot\n{sample_name}')
+    plt.savefig(os.path.join(output_folder,f'{target_folder}_{sample_name}_g3_combined.png'))
     
     return fetch_score

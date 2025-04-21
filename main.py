@@ -3,7 +3,7 @@ import os
 import shutil
 import flowkit as fk
 import pandas as pd
-from gating import check_channels, first_gating_plot, second_gating_plot, third_gating_plot
+from gating import get_missing_channels, first_gating_plot, second_gating_plot, third_gating_plot
 from utils import save_results, log
 
 def process_files(target_folder, skip_files, overwrite):
@@ -27,9 +27,10 @@ def process_files(target_folder, skip_files, overwrite):
         df = sample.as_dataframe(source='raw')
         
         # Log available channel names for verification
-        log(f"Available channels for {fcs_file}: {list(df.columns)}")
+        # log(f"Available channels for {fcs_file}: {list(df.columns)}")
+        missing_channels = get_missing_channels(sample)
         
-        if check_channels(sample):
+        if not missing_channels:
             # Create the output folder for the file has required channels
             sample_name = os.path.splitext(fcs_file)[0]
             output_folder = os.path.join(target_folder, sample_name)
@@ -47,10 +48,10 @@ def process_files(target_folder, skip_files, overwrite):
             
             # The gating procedures and save the plots
             # should return df by applying the gate
-            df = first_gating_plot(df, sample_name ,output_folder)
+            df = first_gating_plot(df, sample_name ,output_folder, target_folder)
             # should return df by applying 2nd gate
-            df = second_gating_plot(df, sample_name, output_folder)
-            result = third_gating_plot(df,sample_name, output_folder)
+            df = second_gating_plot(df, sample_name, output_folder, target_folder)
+            result = third_gating_plot(df,sample_name, output_folder, target_folder)
             
             if isinstance(result, tuple):
                 fetch_score, gate_boundaries = result
@@ -94,6 +95,7 @@ def process_files(target_folder, skip_files, overwrite):
             })
         else:
             log(f"{fcs_file} is missing required channels, skipping analysis.")
+            log(f"{fcs_file} missing channels are: {missing_channels}")
             results.append({
                 'file_name': fcs_file,
                 'has_required_channels': False,
@@ -102,7 +104,7 @@ def process_files(target_folder, skip_files, overwrite):
             })
     
     # Save results
-    save_results(results, target_folder)
+    save_results(results, target_folder, target_folder)
 
     
 def main():
