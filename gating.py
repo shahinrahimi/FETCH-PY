@@ -49,6 +49,10 @@ def first_gating_plot(df: pd.DataFrame, sample_name: str, output_folder: str, ta
                        np.linspace(y_min, y_max, 100))
     positions = np.vstack([X.ravel(), Y.ravel()])
     Z = kde(positions).reshape(X.shape)
+    # calculate the density at each point
+    xy = np.vstack([x, y])
+    kde = gaussian_kde(xy, bw_method='scott')
+    density = kde(xy)
     
     debris_threshold = 25000
     max_fsc_a, max_ssc_a = np.max(x), np.max(y)
@@ -56,9 +60,7 @@ def first_gating_plot(df: pd.DataFrame, sample_name: str, output_folder: str, ta
     
     # Plot 1: Scatter plot (points)
     plt.figure(figsize=(8, 6))
-    plt.scatter(x, y, alpha=0.4, s=1, c='lightgrey', label='Original Data')
-    plt.scatter(x[valid_points], y[valid_points], alpha=0.4, s=1, c='black', label='Gated Data (Gate 1)')
-    # plt.title(f'{x_label} vs {y_label} Scatter Plot\n{sample_name}')
+    plt.scatter(x[valid_points], y[valid_points], c=density[valid_points], s=1, cmap='viridis', alpha=0.6)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.legend()
@@ -280,9 +282,14 @@ def third_gating_plot(df: pd.DataFrame, sample_name: str ,output_folder: str, ta
     # plt.title(f'{x_label} vs {y_label} Contour Plot\n{sample_name}')
     plt.savefig(os.path.join(output_folder,f'{target_folder}_{sample_name}_g3_contour.png'))
     
+    # Calculate the density at each point  
+    xy = np.vstack([x, y])
+    kde = gaussian_kde(xy, bw_method='scott')
+    density = kde(xy)
+    
     # Plot 2: Scatter Plot (Data points)
     plt.figure(figsize=(10, 10))
-    plt.scatter(x, y, alpha=0.1, c='black', s=1, label='Data Points')
+    plt.scatter(x, y, c=density, cmap='viridis', s=1, alpha=0.6)
     plt.axhline(y=hline, color='black', linestyle='--', linewidth=1)
     plt.axvline(x=vline, color='black', linestyle='--', linewidth=1)
     plt.text(xlim[1], ylim[1], f'Q2 D: {D}', fontsize=10, verticalalignment='top', horizontalalignment='right', color='blue', bbox=bbox)
